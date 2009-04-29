@@ -38,15 +38,22 @@ the call returns.
     error_callback = lambda {|code| puts "Error code: #{code}" }
     redis.on_error error_callback
     redis.set "a", "foo" do |response|
-      if r == 1 # success!
-        redis.get "a" do |response|
-          puts response
-        end
-      else
-        puts "alrea
+      redis.get "a" do |response|
+        puts response
       end
     end
   end
+
+* To run live tests on a Redis server (currently compatible with 0.91)
+  
+  rake redis:live_test
+
+* To run a test of the underlying protocol implemention
+
+  rake redis:offline_test
+
+Because the EM::Protocol::Memcached code used Bacon for testing, test code is
+currently in the form of bacon specs.  I'll port them to RSpec at some point.
 
 == REQUIREMENTS:
 
