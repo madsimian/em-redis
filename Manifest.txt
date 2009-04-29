@@ -1,6 +1,7 @@
 History.txt
 Manifest.txt
-README.txt
+README.rdoc
+em-redis.gemspec
 Rakefile
 lib/em-redis.rb
 lib/em-redis/redis_protocol.rb

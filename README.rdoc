@@ -1,14 +1,9 @@
-em-redis
-    by Jonathan Broad
-    (http://www.relativepath.org)
+== EM-REDIS
 
 == DESCRIPTION:
 
-An Event Machine (http://rubyeventmachine.com/)-based library for interacting with the very cool Redis
-(http://code.google.com/p/redis/) data store by Salvatore 'antirez' Sanfilippo.
-Modeled after eventmachine's implementation of the memcached protocol, and
-influenced by Ezra Zygmuntowicz's redis-rb library (distributed as part of
-redis).
+An EventMachine[http://rubyeventmachine.com/] based library for interacting with the very cool Redis[http://code.google.com/p/redis/] data store by Salvatore 'antirez' Sanfilippo.
+Modeled after eventmachine's implementation of the memcached protocol, and influenced by Ezra Zygmuntowicz's {redis-rb}[http://github.com/ezmobius/redis-rb/tree/master] library (distributed as part of Redis).
 
 This library is only useful when used as part of an application that relies on
 Event Machine's event loop.  It implements an EM-based client protocol, which
@@ -22,9 +17,8 @@ about not being warranted to work for any particular purpose really applies.
 
 == FEATURES/PROBLEMS:
 
-* Implements most Redis calls (see:
-http://code.google.com/p/redis/wiki/CommandReference) with the notable
-exception of MONITOR
+* Implements most Redis commands (see {the list of available commands here}[http://code.google.com/p/redis/wiki/CommandReference] with the notable
+exception of MONITOR and AUTH 
 
 == TODO:
 
@@ -34,8 +28,7 @@ exception of MONITOR
 
 == SYNOPSIS:
 
-* Like any Deferrable eventmachine-based protocol implementation, using
-EM-Redis involves making calls and passing blocks that serve as callbacks when
+* Like any Deferrable eventmachine-based protocol implementation, using EM-Redis involves making calls and passing blocks that serve as callbacks when
 the call returns.  
 
   require 'em-redis'
@@ -57,7 +50,7 @@ the call returns.
 
 == REQUIREMENTS:
 
-* Redis (download from: http://code.google.com/p/redis/downloads/list)
+* Redis (download[http://code.google.com/p/redis/downloads/list])
 
 == INSTALL:
 
@@ -87,3 +80,8 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+== CREDIT
+
+    by Jonathan Broad (http://www.relativepath.org)
+
