@@ -1,0 +1,9 @@
+History.txt
+Manifest.txt
+README.txt
+Rakefile
+lib/em-redis.rb
+lib/em-redis/redis_protocol.rb
+spec/test_helper.rb
+spec/live_redis_protocol_spec.rb
+spec/redis_protocol_spec.rb

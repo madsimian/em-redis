@@ -1,0 +1,4 @@
+== 0.1.0 / 2009-04-28
+
+* initial release
+* compatible with Redis 0.093
