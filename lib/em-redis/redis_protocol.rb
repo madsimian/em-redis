@@ -30,37 +30,45 @@ module EventMachine
         inline_command "TYPE", key, &blk 
       end
 
-      def del(key, &blk)
+      def del(key, &blk) #delete
         inline_command "DEL", key, &blk
       end
+      alias_method :delete, :del
 
-      def exists(key, &blk)
+      def exists(key, &blk) #exists?
         inline_command "EXISTS", key, &blk
       end
+      alias_method :exists?, :exists
 
-      def decrby(key, value, &blk)
+      def decrby(key, value, &blk) #decrement_by
         inline_command "DECRBY", key, value, &blk
       end
+      alias_method :decrement_by, :decrby
 
-      def decr(key, &blk)
+      def decr(key, &blk) #decrement
         inline_command "DECR", key, &blk
       end
+      alias_method :decrement, :decr
 
       def incrby(key, value, &blk)
         inline_command "INCRBY", key, value, &blk
       end
+      alias_method :increment_by, :incrby
 
-      def incr(key, &blk)
+      def incr(key, &blk) #increment
         inline_command "INCR", key, &blk
       end
+      alias_method :increment, :incr
 
-      def setnx(key, value, &blk)
+      def setnx(key, value, &blk) #set_if_nil
         multiline_command "SETNX", key, value, &blk
       end
+      alias_method :set_if_nil, :setnx
 
-      def mget(*keys, &blk)
+      def mget(*keys, &blk) #multi_get
         inline_command "MGET", *keys, &blk
       end
+      alias_method :multi_get, :mget
 
       def set(key, value, &blk)
         multiline_command "SET", key, value, &blk
@@ -76,17 +84,20 @@ module EventMachine
         inline_command "KEYS", key_search_string, &wrapper
       end
 
-      def randomkey(&blk)
+      def randomkey(&blk) #random_key, random
         inline_command "RANDOMKEY", &blk
       end
+      alias_method :random_key, :randomkey
+      alias_method :random, :randomkey
 
       def rename(old_name, new_name, &blk)
         inline_command "RENAME", old_name, new_name, &blk
       end
 
-      def renamenx(old_name, new_name, &blk)
+      def renamenx(old_name, new_name, &blk) #rename_if_nil
         inline_command "RENAMENX", old_name, new_name, &blk
       end
+      alias_method :rename_if_nil, :renamenx
 
       def dbsize(&blk)
         inline_command "DBSIZE", &blk
@@ -97,72 +108,98 @@ module EventMachine
       end
       
       #RPUSH,LPUSH,LLEN,LRANGE,LTRIM,LINDEX,LSET,LREM,LPOP,RPOP
-      def rpop(key, &blk)
+      def rpop(key, &blk) # tail_pop, pop
         inline_command "RPOP", key, &blk
       end
+      alias_method :tail_pop, :rpop
+      alias_method :pop, :rpop
 
-      def lpop(key, &blk)
+      def lpop(key, &blk) #head_pop, shift
         inline_command "LPOP", key, &blk
       end
+      alias_method :head_pop, :lpop
+      alias_method :shift, :lpop
 
-      def lrem(key, value, count=0, &blk)
+
+      def lrem(key, value, count=0, &blk) #list_remove
         multiline_command "LREM", key, count, value, &blk
       end
+      alias_method :list_remove, :lrem
 
-      def lset(key, index, value, &blk)
+      def lset(key, index, value, &blk) #list_set
         multiline_command "LSET", key, index, value, &blk
       end
+      alias_method :list_set, :lset
 
-      def lindex(key, index, &blk)
+      def lindex(key, index, &blk) #list_index, index
         inline_command "LINDEX", key, index, &blk
       end
+      alias_method :list_index, :lindex
+      alias_method :index, :lindex
 
-      def ltrim(key, start, ending, &blk)
+      def ltrim(key, start, ending, &blk) # list_trim, trim
         inline_command "LTRIM", key, start, ending, &blk
       end
+      alias_method :list_trim, :ltrim
+      alias_method :trim, :ltrim
 
-      def lrange(key, start, range, &blk)
+      def lrange(key, start, range, &blk) #list_range, range
         inline_command "LRANGE", key, start, range, &blk
       end
+      alias_method :list_range, :lrange
+      alias_method :range, :lrange
 
-      def llen(key, &blk)
+      def llen(key, &blk) #list_len, len
         inline_command "LLEN", key, &blk
       end
+      alias_method :list_len, :llen 
+      alias_method :len, :llen 
 
-      def lpush(key, value, &blk)
+      def lpush(key, value, &blk) #head_push, unshift
         multiline_command "LPUSH", key, value, &blk
       end
+      alias_method :head_push, :lpush
+      alias_method :unshift, :lpush
 
-      def rpush(key, value, &blk)
+      def rpush(key, value, &blk) #tail_push, push
         multiline_command "RPUSH", key, value, &blk
       end
+      alias_method :tail_push, :rpush
+      alias_method :push, :rpush
 
-      
       
       #SADD,SREM,SCARD,SISMEMBER,SINTER,SINTERSTORE,SUNION,SUNIONSTORE,SMEMBERS
-      def sadd(key, value, &blk)
+      def sadd(key, value, &blk) #set_add, add
         multiline_command "SADD", key, value, &blk
       end
+      alias_method :set_add, :sadd 
+      alias_method :add, :sadd 
 
-      def srem(key, value, &blk)
+      def srem(key, value, &blk) #set_remove
         multiline_command "SREM", key, value, &blk
       end
+      alias_method :set_remove, :srem
 
-      def scard(key, &blk)
+      def scard(key, &blk) # set_size
         inline_command "SCARD", key, &blk
       end
+      alias_method :set_size, :scard
 
-      def sismember(key, value, &blk)
+      def sismember(key, value, &blk) #set_member? member?
         multiline_command "SISMEMBER", key, value, &blk
       end
+      alias_method :set_member?, :sismember
+      alias_method :member?, :sismember
 
-      def sinter(*keys, &blk)
+      def sinter(*keys, &blk) #intersect
         inline_command "SINTER", *keys, &blk
       end
+      alias_method :intersect, :sinter
 
-      def sinterstore(target_key, *keys, &blk)
+      def sinterstore(target_key, *keys, &blk) #intersect_and_store
         inline_command "SINTERSTORE", target_key, *keys, &blk
       end
+      alias_method :intersect_and_store, :sinterstore
 
    #  UNION SET MANIP NOT IN RELEASE BUILDS YET
    ############################################
@@ -177,9 +214,11 @@ module EventMachine
    #  
    ############################################
 
-      def smembers(key, &blk)
+      def smembers(key, &blk) #set_members, members
         inline_command "SMEMBERS", key, &blk
       end
+      alias_method :set_members, :smembers
+      alias_method :members, :smembers
 
       
       #SELECT,MOVE,FLUSHDB,FLUSHALL
@@ -219,9 +258,11 @@ module EventMachine
         inline_command "LASTSAVE", &blk
       end
 
-      def bgsave(&blk)
+      def bgsave(&blk) #background_save, async_save
         inline_command "BGSAVE", &blk
       end
+      alias_method :background_save, :bgsave
+      alias_method :async_save, :bgsave
 
       def save(&blk)
         inline_command "SAVE", &blk
@@ -236,14 +277,15 @@ module EventMachine
         end
         inline_command "INFO", &wrapper
       end
-
-      def on_error(&blk)
-        @err_cb = blk
-      end
       
       # MONITOR's a bit tricky
       def monitor
       end
+
+      def on_error(&blk)
+        @err_cb = blk
+      end
+
 
       ## 
       # Generic request methods      
@@ -253,7 +295,7 @@ module EventMachine
         callback {
           command = args.shift
           blk ||= lambda { } # all cmds must at least have a no-op callback
-          @cbs << blk 
+          @redis_callbacks << blk 
           if args.size > 0
             command += " " 
             command += args.join(" ")
@@ -268,7 +310,7 @@ module EventMachine
         callback {
           data_value = args.pop
           blk ||= lambda { } # all cmds must at least have a no-op callback
-          @cbs << blk 
+          @redis_callbacks << blk 
           command += " "
           if args.size > 0
             command += args.join(" ") 
@@ -289,6 +331,7 @@ module EventMachine
       #########################
 
       class ParserError < StandardError; end
+      class ProtocolError < StandardError; end
 
       class RedisError < StandardError
         attr_accessor :code
@@ -311,9 +354,9 @@ module EventMachine
 
       def connection_completed
         puts "*** connection_complete!" if $debug
-        @cbs = []
+        @redis_callbacks = []
         @values = []
-        @multi_n = 0
+        @multibulk_n = 0
 
         @reconnecting = false
         @connected = true
@@ -338,74 +381,84 @@ module EventMachine
 
       def process_cmd line
         puts "*** processing #{line}" if $debug
-        case line[0].chr
-        when C_SINGLE
-          if cb = @cbs.shift
-            cb.call(line.slice(1..-3))
+        # first character of buffer will always be the response type
+        reply_type = line[0].chr 
+        reply_args = line.slice(1..-3) # remove type character and \r\n
+        case reply_type
+
+        # e.g. +OK
+        when C_SINGLE 
+          if cb = @redis_callbacks.shift
+            cb.call( reply_args )
           end
-        when C_BULK
-          len = Integer(line.slice(1..-3))
-          if len == -1
-            if @multi_n > 0
+
+        # e.g. $3\r\nabc\r\n
+        # 'bulk' is more complex because it could be part of multi-bulk
+        when C_BULK 
+          data_len = Integer( reply_args ) 
+          if data_len == -1 # expect no data; return nil
+            if @multibulk_n > 0 # we're in the middle of a multibulk reply
               @values << nil
-              if @values.size == @multi_n
-                if cb = @cbs.shift
+              if @values.size == @multibulk_n # DING, we're done
+                if cb = @redis_callbacks.shift
                   cb.call(@values)
                   @values = []
-                  @multi_n = 0
+                  @multibulk_n = 0
                 end
               end
-            else
-              if cb = @cbs.shift
+            else 
+              if cb = @redis_callbacks.shift
                 cb.call(nil)
               end
             end
-            return
-          end
-          if @buffer.size >= len + 2
-            if @multi_n > 0
-              @values << @buffer.slice!(0,len)
-              if @values.size == @multi_n
-                if cb = @cbs.shift
+          elsif @buffer.size >= data_len + 2 # buffer is full of expected data
+            if @multibulk_n > 0 # we're in the middle of a multibulk reply
+              @values << @buffer.slice!(0,data_len) 
+              if @values.size == @multibulk_n # DING, we're done
+                if cb = @redis_callbacks.shift
                   cb.call(@values)
                   @values = []
-                  @multi_n = 0
+                  @multibulk_n = 0
                 end
               end
-              @buffer.slice!(0,2)
-            else
-              value = @buffer.slice!(0,len)
-              if cb = @cbs.shift
+            else # not multibulk
+              value = @buffer.slice!(0,data_len)
+              if cb = @redis_callbacks.shift
                 cb.call(value)
               end
-              @buffer.slice!(0,2)
             end
-          else
-            raise ParserError
+            @buffer.slice!(0,2) # tossing \r\n
+          else # buffer isn't full or nil
+            # FYI, ParseError puts command back on head of buffer, waits for
+            # more data complete buffer
+            raise ParserError 
           end
+        #e.g. :8
         when C_INT
-          if cb = @cbs.shift
-            cb.call( Integer(line.slice(1..-3)) )
+          if cb = @redis_callbacks.shift
+            cb.call( Integer(reply_args) )
           end
+        #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n 
         when C_MULTI
-          @multi_n = Integer(line.slice(1..-3))
-          if @multi_n == -1
-            if cb = @cbs.shift
+          @multibulk_n = Integer(reply_args)
+          if @multibulk_n == -1
+            if cb = @redis_callbacks.shift
               cb.call(nil)
             end
           end
+        #e.g. -MISSING
         when C_ERR
-          code = line.slice(1..-3)
-          @cbs.shift # throw away the cb?
+          @redis_callbacks.shift # throw away the cb?
           if @err_cb
-            @err_cb.call(code)
+            @err_cb.call(reply_args)
           else
             err = RedisError.new
-            err.code = code
+            err.code = reply_args
             raise err, "Redis server returned error code: #{code}"
           end
+        # Whu?
         else
-          p 'other'
+          raise ProtocolError, "reply type not recognized: #{line.strip}"
         end
       end
 
@@ -421,143 +474,6 @@ module EventMachine
         end
       end
 
-    end
-  end
-end
-
-if __FILE__ == $0
-  # ruby -I ext:lib -r eventmachine -rubygems lib/protocols/memcache.rb
-  require 'em/spec'
-
-  class TestConnection
-    include EM::P::Redis
-    def send_data data
-      sent_data << data
-    end
-    def sent_data
-      @sent_data ||= ''
-    end
-
-    def initialize
-      connection_completed
-    end
-  end
-
-
-  EM.describe EM::Protocols::Redis do
-
-    before do
-      @c = TestConnection.new
-    end
-
-    # Inline request protocol
-    should 'send inline commands correctly' do
-      @c.inline_command("GET", 'a')
-      @c.sent_data.should == "GET a\r\n"
-      done
-    end
-    
-    should "space-separate multiple inline arguments" do
-      @c.inline_command("GET", 'a', 'b', 'c')
-      @c.sent_data.should == "GET a b c\r\n"
-      done
-    end
-
-    # Multiline request protocol
-    should "send multiline commands correctly" do
-      @c.multiline_command("SET", "foo", "abc")
-      @c.sent_data.should == "SET foo 3\r\nabc\r\n"
-      done
-    end
-
-    # Specific calls
-    #
-    # SORT
-    should "send sort command" do
-      @c.sort "foo"
-      @c.sent_data.should == "SORT foo\r\n"
-      done
-    end
-
-    should "send sort command with all optional parameters" do
-      @c.sort "foo", "foo_sort_*", 0, 10, "data_*", true, true
-      @c.sent_data.should == "SORT foo BY foo_sort_* LIMIT 0 10 GET data_* DESC ALPHA\r\n"
-      done
-    end
-
-    # Inline response
-    should "parse an inline response" do
-      @c.inline_command("PING") do |resp|
-        resp.should == "OK"
-        done
-      end
-      @c.receive_data "+OK\r\n"
-    end
-
-    should "parse an inline integer response" do
-      @c.inline_command("EXISTS") do |resp|
-        resp.should == 0
-        done
-      end
-      @c.receive_data ":0\r\n"
-    end
-
-    should "parse an inline error response" do
-      lambda do
-        @c.inline_command("BLARG")
-        @c.receive_data "-FAIL\r\n"
-      end.should.raise(EM::P::Redis::RedisError)
-      done
-    end
-
-    should "trigger a given error callback for inline error response instead of raising an error" do
-      lambda do
-        @c.inline_command("BLARG")
-        @c.on_error {|code| code.should == "FAIL"; done }
-        @c.receive_data "-FAIL\r\n"
-      end.should.not.raise(EM::P::Redis::RedisError)
-      done
-    end
-
-    # Bulk response
-    should "parse a bulk response" do
-      @c.inline_command("GET", "foo") do |resp|
-        resp.should == "bar"
-        done
-      end
-      @c.receive_data "$3\r\n"
-      @c.receive_data "bar\r\n"
-    end
-
-    should "distinguish nil in a bulk response" do
-      @c.inline_command("GET", "bar") do |resp|
-        resp.should == nil
-      end
-      @c.receive_data "$-1\r\n"
-    end
-    
-    # Multi-bulk response
-    
-    should "parse a multi-bulk response" do
-      @c.inline_command "RANGE", 0, 10 do |resp|
-        resp.should == ["a", "b", "foo"]
-        done
-      end
-      @c.receive_data "*3\r\n"
-      @c.receive_data "$1\r\na\r\n"
-      @c.receive_data "$1\r\nb\r\n"
-      @c.receive_data "$3\r\nfoo\r\n"
-    end
-
-    should "distinguish nil in a multi-bulk response" do
-      @c.inline_command "RANGE", 0, 10 do |resp|
-        resp.should == ["a", nil, "foo"]
-        done
-      end
-      @c.receive_data "*3\r\n"
-      @c.receive_data "$1\r\na\r\n"
-      @c.receive_data "$-1\r\n"
-      @c.receive_data "$3\r\nfoo\r\n"
     end
   end
 end
