@@ -1,4 +1,11 @@
+== 0.1.1 / 2009-05-01
+
+* added a number of aliases to redis-based method names
+* refactored process_cmd method for greater clarity
+
 == 0.1.0 / 2009-04-28
 
 * initial release
 * compatible with Redis 0.093
+
+
