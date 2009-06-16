@@ -103,8 +103,8 @@ module EventMachine
         inline_command "DBSIZE", &blk
       end
 
-      def expire(key, &blk)
-        inline_command "EXPIRE", key, &blk
+      def expire(key, time, &blk)
+        inline_command "EXPIRE", key, time, &blk
       end
       
       #RPUSH,LPUSH,LLEN,LRANGE,LTRIM,LINDEX,LSET,LREM,LPOP,RPOP
