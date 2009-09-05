@@ -454,7 +454,7 @@ module EventMachine
           else
             err = RedisError.new
             err.code = reply_args
-            raise err, "Redis server returned error code: #{code}"
+            raise err, "Redis server returned error code: #{err.code}"
           end
         # Whu?
         else
