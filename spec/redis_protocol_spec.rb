@@ -26,6 +26,12 @@ EM.describe EM::Protocols::Redis do
     done
   end
 
+  should "send integers in multiline commands correctly" do
+    @c.multiline_command("SET", "foo", 1_000_000)
+    @c.sent_data.should == "SET foo 7\r\n1000000\r\n"
+    done
+  end
+
   # Specific calls
   #
   # SORT

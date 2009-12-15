@@ -308,7 +308,7 @@ module EventMachine
 
       def multiline_command(command, *args, &blk)
         callback {
-          data_value = args.pop
+          data_value = args.pop.to_s
           blk ||= lambda { } # all cmds must at least have a no-op callback
           @redis_callbacks << blk 
           command += " "
@@ -318,7 +318,7 @@ module EventMachine
           end
           command += data_value.size.to_s
           command += C_DELIM
-          command += data_value.to_s
+          command += data_value
           command += C_DELIM
           puts "*** sending: #{command}" if $debug
           send_data command
