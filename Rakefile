@@ -23,7 +23,7 @@ Bones {
   readme_file  'README.rdoc'
   ignore_file  '.gitignore'
 
-  depend_on 'eventmachine'
+  depend_on 'eventmachine', '>=0.12.10'
 
   depend_on "bacon", :development => true
   depend_on "em-spec", :development => true 
