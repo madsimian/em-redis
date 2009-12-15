@@ -1,3 +1,6 @@
+== 0.2.1 / 2009-12-15
+* updated gem dependencies
+
 == 0.2 / 2009-12-15
 * rip off stock redis gem
 * sort is no longer compatible with 0.1 version
