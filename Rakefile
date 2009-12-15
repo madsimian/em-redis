@@ -4,23 +4,29 @@
 
 begin
   require 'bones'
-  Bones.setup
 rescue LoadError
-  load 'tasks/setup.rb'
+  abort '### Please install the "bones" gem ###'
 end
 
 ensure_in_path 'lib'
 require 'em-redis'
 
-task :default => 'spec:run'
+task :default => ['redis:live_test', 'redis:offline_test']
 
-PROJ.name = 'em-redis'
-PROJ.authors = 'Jonathan Broad'
-PROJ.email = 'jonathan@relativepath.org'
-PROJ.url = ''
-PROJ.version = EMRedis::VERSION
-PROJ.rubyforge.name = 'em-redis'
-PROJ.spec.opts << '--color'
-PROJ.gem.dependencies << "bacon"
+Bones {
+  name 'em-redis'
+  authors 'Jonathan Broad'
+  email 'jonathan@relativepath.org'
+  url ''
+  version EMRedis::VERSION
+
+  readme_file  'README.rdoc'
+  ignore_file  '.gitignore'
+
+  depend_on 'eventmachine'
+
+  depend_on "bacon", :development => true
+  depend_on "em-spec", :development => true 
+}
 
 # EOF

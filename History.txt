@@ -1,3 +1,5 @@
+== 0.2 / 2009-12-??
+
 == 0.1.1 / 2009-05-01
 
 * added a number of aliases to redis-based method names
