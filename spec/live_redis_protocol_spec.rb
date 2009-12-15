@@ -124,7 +124,7 @@ EM.describe EM::Protocols::Redis, "connected to a db containing some simple stri
 
   should "be able to fetch all the keys" do
     @c.keys "*" do |r|
-      r.should == ["a", "x"]
+      r.sort.should == ["a", "x"]
       done
     end
   end
@@ -335,7 +335,7 @@ EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
 
   should "be able to retrieve a set's members" do
     @c.smembers("foo") do |r|
-      r.should == ["a", "b", "c"]
+      r.sort.should == ["a", "b", "c"]
       done
     end
   end
@@ -359,7 +359,7 @@ EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
 
   should "be able to find and store the sets' intersection" do
     @c.sinterstore("baz", "foo", "bar") do |r|
-      r.should == "OK"
+      r.should == 1
       @c.smembers("baz") do |r|
         r.should == ["c"]
         done
