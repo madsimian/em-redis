@@ -154,10 +154,6 @@ module EventMachine
         "sync"    => true
       }
 
-      def [](key)
-        self.get(key)
-      end
-
       def []=(key,value)
         set(key,value)
       end
