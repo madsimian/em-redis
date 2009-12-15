@@ -34,7 +34,7 @@ the call returns.
     end
   end
 
-* To run live tests on a Redis server (currently compatible with 0.91)
+* To run live tests on a Redis server (currently compatible with 1.02)
   
   rake redis:live_test
 

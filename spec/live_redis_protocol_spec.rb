@@ -76,14 +76,14 @@ EM.describe EM::Protocols::Redis, "connected to an empty db" do
 
   should "be able to add a member to a nonexistent set" do
     @c.sadd("set_foo", "bar") do |r|
-      r.should == 1
+      r.should == true
       done
     end
   end
 
   should "be able to get info about the db as a hash" do
     @c.info do |r|
-      r.should.key? "redis_version"
+      r.should.key? :redis_version
       done
     end
   end
@@ -131,9 +131,9 @@ EM.describe EM::Protocols::Redis, "connected to a db containing some simple stri
 
   should "be able to set a value if a key doesn't exist" do
     @c.setnx "a", "foo" do |r|
-      r.should == 0
+      r.should == false
       @c.setnx "zzz", "foo" do |r|
-        r.should == 1
+        r.should == true
         done
       end
     end
@@ -141,9 +141,9 @@ EM.describe EM::Protocols::Redis, "connected to a db containing some simple stri
 
   should "be able to test for the existence of a key" do
     @c.exists "a" do |r|
-      r.should == 1
+      r.should == true
       @c.exists "zzz" do |r|
-        r.should == 0
+        r.should == false
         done
       end
     end
@@ -151,11 +151,11 @@ EM.describe EM::Protocols::Redis, "connected to a db containing some simple stri
   
   should "be able to delete a key" do
     @c.del "a" do |r|
-      r.should == 1
+      r.should == true
       @c.exists "a" do |r|
-        r.should == 0
+        r.should == false
         @c.del "a" do |r|
-          r.should == 0
+          r.should == false
           done
         end
       end
@@ -183,9 +183,9 @@ EM.describe EM::Protocols::Redis, "connected to a db containing some simple stri
 
   should "be able to rename a key unless it exists" do
     @c.renamenx "a", "x" do |r|
-      r.should == 0
+      r.should == false
       @c.renamenx "a", "zzz" do |r|
-        r.should == 1
+        r.should == true
         @c.get "zzz" do |r|
           r.should == "b"
           done
@@ -252,14 +252,14 @@ EM.describe EM::Protocols::Redis, "connected to a db containing a list" do
   end
 
   should "be able to get a range of values from a list" do
-    @c.lrange("foo", 0,1) do |r|
+    @c.lrange("foo", 0, 1) do |r|
       r.should == ["a", "b"]
       done
     end
   end
 
   should "be able to 'ltrim' a list" do
-    @c.ltrim("foo", 0,1) do |r|
+    @c.ltrim("foo", 0, 1) do |r|
       r.should == "OK"
       @c.llen("foo") do |r|
         r.should == 2
@@ -269,7 +269,7 @@ EM.describe EM::Protocols::Redis, "connected to a db containing a list" do
   end
 
   should "be able to 'rem' a list element" do
-    @c.lrem("foo", "a", 0) do |r|
+    @c.lrem("foo", 0, "a") do |r|
       r.should == 1
       @c.llen("foo") do |r|
         r.should == 2
@@ -309,9 +309,9 @@ EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
 
   should "be able to add a new member to a set unless it is a duplicate" do
     @c.sadd("foo", "d") do |r|
-      r.should == 1 # success
+      r.should == true # success
       @c.sadd("foo", "a") do |r|
-        r.should == 0 # failure
+        r.should == false # failure
         @c.scard("foo") do |r|
           r.should == 4
           done
@@ -322,9 +322,9 @@ EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
 
   should "be able to remove a set member if it exists" do
     @c.srem("foo", "a") do |r|
-      r.should == 1
+      r.should == true
       @c.srem("foo", "z") do |r|
-        r.should == 0
+        r.should == false
         @c.scard("foo") do |r|
           r.should == 2
           done
@@ -342,9 +342,9 @@ EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
 
   should "be able to detect set membership" do
     @c.sismember("foo", "a") do |r|
-      r.should == 1
+      r.should == true
       @c.sismember("foo", "z") do |r|
-        r.should == 0
+        r.should == false
         done
       end
     end
@@ -367,25 +367,22 @@ EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
     end
   end
 
-# UNION SET MANIP NOT IN RELEASE BUILDS YET
-###########################################
-#
-# should "be able to find the sets' union" do
-#   @c.sunion("foo", "bar") do |r|
-#     r.should == ["a","b","c","d","e"]
-#     done
-#   end
-# end
+  should "be able to find the sets' union" do
+    @c.sunion("foo", "bar") do |r|
+      r.sort.should == ["a","b","c","d","e"]
+      done
+    end
+  end
 
-# should "be able to find and store the sets' union" do
-#   @c.sunionstore("baz", "foo", "bar") do |r|
-#     r.should == "OK"
-#     @c.smembers("baz") do |r|
-#       r.should == ["a","b","c","d","e"]
-#       done
-#     end
-#   end
-# end
+  should "be able to find and store the sets' union" do
+    @c.sunionstore("baz", "foo", "bar") do |r|
+      r.should == 5
+      @c.smembers("baz") do |r|
+        r.sort.should == ["a","b","c","d","e"]
+        done
+      end
+    end
+  end
 
   should "be able to detect the type of a set" do
     @c.type "foo" do |r|
@@ -411,7 +408,7 @@ EM.describe EM::Protocols::Redis, "connected to a db containing three linked lis
   end
 
   should "be able to collate a sorted set of data" do
-    @c.sort("foo", "*_sort", nil, nil, "*_data") do |r|
+    @c.sort("foo", :by => "*_sort", :get => "*_data") do |r|
       r.should == ["bar", "foo"]
       done
     end
