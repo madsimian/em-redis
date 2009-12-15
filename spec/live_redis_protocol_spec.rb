@@ -122,6 +122,13 @@ EM.describe EM::Protocols::Redis, "connected to a db containing some simple stri
     end
   end
 
+  should "be able to fetch the values of multiple keys in a hash" do
+    @c.mapped_mget "a", "x" do |r|
+      r.should == {"a" => "b",  "x" => "y"}
+      done
+    end
+  end
+
   should "be able to fetch all the keys" do
     @c.keys "*" do |r|
       r.sort.should == ["a", "x"]
