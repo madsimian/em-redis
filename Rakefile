@@ -15,8 +15,8 @@ task :default => ['redis:live_test', 'redis:offline_test']
 
 Bones {
   name 'em-redis'
-  authors 'Jonathan Broad'
-  email 'jonathan@relativepath.org'
+  authors ['Jonathan Broad', 'Eugene Pimenov']
+  email 'libc@me.com'
   url ''
   version EMRedis::VERSION
 
