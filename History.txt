@@ -1,4 +1,5 @@
-== 0.2.2 / ????-??-??
+== 0.2.2 / 2009-12-??
+* reselect database after reconnecting
 
 == 0.2.1 / 2009-12-15
 * updated gem dependencies

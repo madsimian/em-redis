@@ -97,11 +97,10 @@ EM.describe EM::Protocols::Redis, "connected to an empty db" do
 
   should "be able to save db in the background" do
     @c.bgsave do |r|
-      r.should == "OK"
+      r.should == "Background saving started"
       done
     end
   end
-
 
 end
 
@@ -425,6 +424,29 @@ EM.describe EM::Protocols::Redis, "connected to a db containing three linked lis
     @c.keys "a_*" do |r|
       r.should == ["a_sort", "a_data"]
       done
+    end
+  end
+end
+
+EM.describe EM::Protocols::Redis, "when reconnecting" do
+  before do
+    @c = EM::Protocols::Redis.connect
+    @c.select "14"
+    @c.flushdb
+  end
+
+  should "select previously selected datase" do
+    #simulate disconnect
+    @c.set('foo', 'a') { @c.close_connection_after_writing }
+
+    EM.add_timer(2) do
+      @c.get('foo') do |r|
+        r.should == 'a'
+        @c.get('non_existing') do |r|
+          r.should == nil
+          done
+        end
+      end
     end
   end
 end

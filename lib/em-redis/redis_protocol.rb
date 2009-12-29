@@ -183,6 +183,16 @@ module EventMachine
         call_command(decrement ? ["decrby",key,decrement] : ["decr",key], &blk)
       end
 
+      def select(db, &blk)
+        @current_database = db
+        call_command(['select', db], &blk)
+      end
+
+      def auth(password, &blk)
+        @current_password = password
+        call_command(['auth', password], &blk)
+      end
+
       # Similar to memcache.rb's #get_multi, returns a hash mapping
       # keys to values.
       def mapped_mget(*keys)
@@ -385,7 +395,11 @@ module EventMachine
       def unbind
         puts "*** unbinding" if $debug
         if @connected or @reconnecting
-          EM.add_timer(1){ reconnect @host, @port }
+          EM.add_timer(1) do
+            reconnect @host, @port
+            auth @current_password if @current_password
+            select @current_database if @current_database
+          end
           @connected = false
           @reconnecting = true
           @deferred_status = nil
