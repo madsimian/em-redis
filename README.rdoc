@@ -13,13 +13,12 @@ parallelization without threads.
 
 == FEATURES/PROBLEMS:
 
-* Implements most Redis commands (see {the list of available commands here}[http://code.google.com/p/redis/wiki/CommandReference] with the notable
-exception of MONITOR and AUTH 
+Implements most Redis commands (see {the list of available commands here}[http://code.google.com/p/redis/wiki/CommandReference] with the notable
+exception of MONITOR.
 
 == SYNOPSIS:
 
-* Like any Deferrable eventmachine-based protocol implementation, using EM-Redis involves making calls and passing blocks that serve as callbacks when
-the call returns.  
+Like any Deferrable eventmachine-based protocol implementation, using EM-Redis involves making calls and passing blocks that serve as callbacks when the call returns.  
 
   require 'em-redis'
 
@@ -34,11 +33,11 @@ the call returns.
     end
   end
 
-* To run live tests on a Redis server (currently compatible with 1.02)
-  
+To run live tests on a Redis server (currently compatible with 1.3)
+
   rake redis:live_test
 
-* To run a test of the underlying protocol implemention
+To run a test of the underlying protocol implemention
 
   rake redis:offline_test
 
@@ -51,7 +50,7 @@ currently in the form of bacon specs.  I'll port them to RSpec at some point.
 
 == INSTALL:
 
-* sudo gem install em-redis
+  sudo gem install em-redis
 
 == LICENSE:
 
