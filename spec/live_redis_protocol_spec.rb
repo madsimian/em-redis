@@ -450,3 +450,30 @@ EM.describe EM::Protocols::Redis, "when reconnecting" do
     end
   end
 end
+
+EM.describe EM::Protocols::Redis, "zset" do
+  before do
+    @r = EM::Protocols::Redis.connect
+    @r.select "14"
+    @r.flushdb
+  end
+
+  should "should be able to increment a range score of a zset (ZINCRBY)" do
+    # create a new zset
+    @r.zincrby "hackers", 1965, "Yukihiro Matsumoto"
+    @r.zscore("hackers", "Yukihiro Matsumoto") { |score| score.should == "1965" }
+
+    # add a new element
+    @r.zincrby "hackers", 1912, "Alan Turing"
+    @r.zscore("hackers", "Alan Turing") { |score| score.should == "1912" }
+
+    # update the score
+    @r.zincrby "hackers", 100, "Alan Turing" # yeah, we are making Turing a bit younger
+    @r.zscore("hackers", "Alan Turing") { |score| score.should == "2012" }
+
+    # attempt to update a key that's not a zset
+    @r["i_am_not_a_zet"] = "value"
+    @r.on_error { done }
+    @r.zincrby("i_am_not_a_zet", 23, "element")
+  end
+end
