@@ -458,6 +458,14 @@ EM.describe EM::Protocols::Redis, "zset" do
     @r.flushdb
   end
 
+  it "should be able to get a score for a specific value in a zset (ZSCORE)" do
+    @r.zadd "zset", 23, "value"
+    @r.zscore("zset", "value") { |score| score.should == "23" }
+
+    @r.zscore("zset", "value2") { |score| score.should == nil }
+    @r.zscore("unknown_zset", "value") { |score| score.should == nil ; done }
+  end
+
   should "should be able to increment a range score of a zset (ZINCRBY)" do
     # create a new zset
     @r.zincrby "hackers", 1965, "Yukihiro Matsumoto"
