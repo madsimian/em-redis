@@ -33,13 +33,9 @@ Like any Deferrable eventmachine-based protocol implementation, using EM-Redis i
     end
   end
 
-To run live tests on a Redis server (currently compatible with 1.3)
+To run tests on a Redis server (currently compatible with 1.3)
 
-  rake redis:live_test
-
-To run a test of the underlying protocol implemention
-
-  rake redis:offline_test
+  rake
 
 Because the EM::Protocol::Memcached code used Bacon for testing, test code is
 currently in the form of bacon specs.  I'll port them to RSpec at some point.

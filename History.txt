@@ -7,7 +7,7 @@
 == 0.2 / 2009-12-15
 * rip off stock redis gem
 * sort is no longer compatible with 0.1 version
-* response of exists, sismember, sadd, srem, smove, zadd, zrem, move, setnx, del, renamenx, and expire is either true of false, not 0/1 as in 0.1
+* response of exists, sismember, sadd, srem, smove, zadd, zrem, move, setnx, del, renamenx, and expire is either true or false, not 0 or 1 as in 0.1
 * info returns hash of symbols now
 * lrem has different argument order
 

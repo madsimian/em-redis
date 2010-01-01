@@ -163,9 +163,9 @@ module EventMachine
 
       def set(key, value, expiry=nil)
         call_command([:set, key, value]) do |s|
-          expire(key, expiry) if s == OK && expiry
           yield s if block_given?
         end
+        expire(key, expiry) if expiry
       end
 
       def sort(key, options={}, &blk)
@@ -381,7 +381,7 @@ module EventMachine
         #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n 
         when ASTERISK
           @multibulk_n = Integer(reply_args)
-          dispatch_response(nil) if @multibulk_n == -1
+          dispatch_response([]) if @multibulk_n == -1
 
         # Whu?
         else

@@ -11,7 +11,7 @@ end
 ensure_in_path 'lib'
 require 'em-redis'
 
-task :default => ['redis:live_test', 'redis:offline_test']
+task :default => ['redis:test']
 
 Bones {
   name 'em-redis'
@@ -28,5 +28,12 @@ Bones {
   depend_on "bacon", :development => true
   depend_on "em-spec", :development => true 
 }
+
+namespace :redis do
+  desc "Test em-redis against a live Redis"
+  task :test do
+    sh "bacon spec/live_redis_protocol_spec.rb spec/redis_commands_spec.rb spec/redis_protocol_spec.rb"
+  end
+end
 
 # EOF
