@@ -17,7 +17,9 @@ Bones {
   name 'em-redis'
   authors ['Jonathan Broad', 'Eugene Pimenov']
   email 'libc@me.com'
-  url ''
+  url 'http://github.com/libc/em-redis'
+  summary 'An eventmachine-based implementation of the Redis protocol'
+  description summary
   version EMRedis::VERSION
 
   readme_file  'README.rdoc'
