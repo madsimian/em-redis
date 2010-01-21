@@ -23,9 +23,9 @@ Like any Deferrable eventmachine-based protocol implementation, using EM-Redis i
   require 'em-redis'
 
   EM.run do
-    redis = EM::Protocol::Redis.connect
+    redis = EM::Protocols::Redis.connect("localhost", 6379)
     error_callback = lambda {|code| puts "Error code: #{code}" }
-    redis.on_error error_callback
+    redis.on_error &error_callback
     redis.set "a", "foo" do |response|
       redis.get "a" do |response|
         puts response
