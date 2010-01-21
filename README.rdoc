@@ -61,7 +61,7 @@ currently in the form of bacon specs.  I'll port them to RSpec at some point.
 
 == INSTALL:
 
-* sudo gem install madsimian-em-redis --source http://gems.github.com
+* sudo gem install em-redis --source http://gemcutter.org
 
 == LICENSE:
 
