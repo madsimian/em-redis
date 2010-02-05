@@ -219,9 +219,10 @@ module EventMachine
         call_command(['quit'], &blk)
       end
 
-      def on_error(&blk)
-        @err_cb = blk
+      def errback(&blk)
+        @error_callback = blk
       end
+      alias_method :on_error, :errback
 
       def method_missing(*argv, &blk)
         call_command(argv, &blk)
@@ -308,6 +309,11 @@ module EventMachine
         @db             = (options[:db] || 0).to_i
         @password       = options[:password]
         @logger         = options[:logger]
+        @error_callback = lambda do |code|
+          err = RedisError.new
+          err.code = code
+          raise err, "Redis server returned error code: #{code}"
+        end
       end
 
       def connection_completed
@@ -350,14 +356,7 @@ module EventMachine
         #e.g. -MISSING
         when MINUS
           @redis_callbacks.shift # throw away the cb?
-          if @err_cb
-            @err_cb.call(reply_args)
-          else
-            err = RedisError.new
-            err.code = reply_args
-            raise err, "Redis server returned error code: #{err.code}"
-          end
-
+          @error_callback.call(reply_args)
         # e.g. +OK
         when PLUS
           dispatch_response(reply_args)
