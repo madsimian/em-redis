@@ -288,7 +288,7 @@ module EventMachine
           options = {}
         when 1
           arg = args.shift
-          case args
+          case arg
           when Hash then options = arg
           when String then options = {:host => arg}
           else raise ArgumentError, 'first argument must be Hash or String'
