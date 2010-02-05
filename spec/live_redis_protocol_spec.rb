@@ -3,8 +3,7 @@ require File.expand_path(File.dirname(__FILE__) + "/test_helper.rb")
 EM.describe EM::Protocols::Redis, "connected to an empty db" do
 
   before do
-    @c = EM::Protocols::Redis.connect
-    @c.select "14"
+    @c = EM::Protocols::Redis.connect :db => 14
     @c.flushdb
   end
 
@@ -107,8 +106,7 @@ end
 EM.describe EM::Protocols::Redis, "connected to a db containing some simple string-valued keys" do
 
   before do
-    @c = EM::Protocols::Redis.connect
-    @c.select "14"
+    @c = EM::Protocols::Redis.connect :db => 14
     @c.flushdb
     @c.set "a", "b"
     @c.set "x", "y"
@@ -206,8 +204,7 @@ end
 EM.describe EM::Protocols::Redis, "connected to a db containing a list" do
 
   before do
-    @c = EM::Protocols::Redis.connect
-    @c.select "14"
+    @c = EM::Protocols::Redis.connect :db => 14
     @c.flushdb
     @c.lpush "foo", "c"
     @c.lpush "foo", "b"
@@ -295,8 +292,7 @@ end
 
 EM.describe EM::Protocols::Redis, "connected to a db containing two sets" do
   before do
-    @c = EM::Protocols::Redis.connect
-    @c.select "14"
+    @c = EM::Protocols::Redis.connect :db => 14
     @c.flushdb
     @c.sadd "foo", "a"
     @c.sadd "foo", "b"
@@ -402,8 +398,7 @@ end
 
 EM.describe EM::Protocols::Redis, "connected to a db containing three linked lists" do
   before do
-    @c = EM::Protocols::Redis.connect
-    @c.select "14"
+    @c = EM::Protocols::Redis.connect :db => 14
     @c.flushdb
     @c.rpush "foo", "a"
     @c.rpush "foo", "b"
@@ -430,8 +425,7 @@ end
 
 EM.describe EM::Protocols::Redis, "when reconnecting" do
   before do
-    @c = EM::Protocols::Redis.connect
-    @c.select "14"
+    @c = EM::Protocols::Redis.connect :db => 14
     @c.flushdb
   end
 

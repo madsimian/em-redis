@@ -1,13 +1,23 @@
 require File.expand_path(File.dirname(__FILE__) + "/test_helper.rb")
+require 'logger'
 
 EM.describe EM::Protocols::Redis do
   default_timeout 1
 
   before do
-    @r = EM::Protocols::Redis.connect
-    @r.select "14"
+    @r = EM::Protocols::Redis.connect :db => 14
     @r.flushdb
     @r['foo'] = 'bar'
+  end
+
+
+  should "be able to provide a logger" do
+    log = StringIO.new
+    r = EM::Protocols::Redis.connect :db => 14, :logger => Logger.new(log)
+    r.ping do
+      log.string.should.include "ping"
+      done
+    end
   end
 
   it "should be able to PING" do

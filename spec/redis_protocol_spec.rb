@@ -90,13 +90,20 @@ EM.describe EM::Protocols::Redis do
     done
   end
 
-  should "trigger a given error callback for inline error response instead of raising an error" do
+  should "trigger a given error callback (specified with on_error) for inline error response instead of raising an error" do
     lambda do
       @c.call_command(["blarg"])
       @c.on_error {|code| code.should == "FAIL"; done }
       @c.receive_data "-FAIL\r\n"
     end.should.not.raise(EM::P::Redis::RedisError)
-    done
+  end
+
+  should "trigger a given error callback for inline error response instead of raising an error" do
+    lambda do
+      @c.call_command(["blarg"])
+      @c.errback { |code| code.should == "FAIL"; done }
+      @c.receive_data "-FAIL\r\n"
+    end.should.not.raise(EM::P::Redis::RedisError)
   end
 
   # Bulk response
@@ -112,6 +119,7 @@ EM.describe EM::Protocols::Redis do
   should "distinguish nil in a bulk response" do
     @c.call_command(["GET", "bar"]) do |resp|
       resp.should == nil
+      done
     end
     @c.receive_data "$-1\r\n"
   end
