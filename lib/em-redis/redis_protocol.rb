@@ -320,13 +320,13 @@ module EventMachine
         @logger.debug { "Connected to #{@host}:#{@port}" } if @logger
 
         @redis_callbacks = []
-        @values = []
-        @multibulk_n = 0
+        @multibulk_n     = false
+        @reconnecting    = false
+        @connected       = true
+
         call_command(["auth", @password]) if @password
         call_command(["select", @db]) unless @db == 0
 
-        @reconnecting = false
-        @connected = true
         succeed
       end
 
@@ -334,7 +334,7 @@ module EventMachine
       #         stack overflows when there is too much data.
       # include EM::P::LineText2
       def receive_data(data)
-        (@buffer||='') << data
+        (@buffer ||= '') << data
         while index = @buffer.index(DELIM)
           begin
             line = @buffer.slice!(0, index+2)
@@ -360,72 +360,72 @@ module EventMachine
         # e.g. +OK
         when PLUS
           dispatch_response(reply_args)
-
         # e.g. $3\r\nabc\r\n
         # 'bulk' is more complex because it could be part of multi-bulk
         when DOLLAR
           data_len = Integer(reply_args)
           if data_len == -1 # expect no data; return nil
-            if @multibulk_n > 0 # we're in the middle of a multibulk reply
-              @values << nil
-              if @values.size == @multibulk_n # DING, we're done
-                dispatch_response(@values)
-                @values = []
-                @multibulk_n = 0
-              end
-            else
-              dispatch_response(nil)
-            end
+            dispatch_response(nil)
           elsif @buffer.size >= data_len + 2 # buffer is full of expected data
-            if @multibulk_n > 0 # we're in the middle of a multibulk reply
-              @values << @buffer.slice!(0, data_len)
-              if @values.size == @multibulk_n # DING, we're done
-                dispatch_response(@values)
-                @values = []
-                @multibulk_n = 0
-              end
-            else # not multibulk
-              value = @buffer.slice!(0, data_len)
-              dispatch_response(value)
-            end
+            dispatch_response(@buffer.slice!(0, data_len))
             @buffer.slice!(0,2) # tossing \r\n
           else # buffer isn't full or nil
-            # FYI, ParseError puts command back on head of buffer, waits for
-            # more data complete buffer
-            raise ParserError 
+            # TODO: don't control execution with exceptions
+            raise ParserError
           end
-
         #e.g. :8
         when COLON
           dispatch_response(Integer(reply_args))
-
         #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n 
         when ASTERISK
-          @multibulk_n = Integer(reply_args)
-          dispatch_response([]) if @multibulk_n == -1
-
+          multibulk_count = Integer(reply_args)
+          if multibulk_count == -1
+            dispatch_response([])
+          else
+            start_multibulk(multibulk_count)
+          end
         # Whu?
         else
+          # TODO: get rid of this exception
           raise ProtocolError, "reply type not recognized: #{line.strip}"
         end
       end
 
       def dispatch_response(value)
+        if @multibulk_n
+          @multibulk_values << value
+          @multibulk_n -= 1
+
+          if @multibulk_n == 0
+            value = @multibulk_values
+            @multibulk_n = false
+          else
+            return
+          end
+        end
+
         processor, blk = @redis_callbacks.shift
         value = processor.call(value) if processor
         blk.call(value) if blk
+      end
+
+      def start_multibulk(multibulk_count)
+        @multibulk_n = multibulk_count
+        @multibulk_values = []
       end
 
       def unbind
         @logger.debug { "Disconnected" }  if @logger
         if @connected || @reconnecting
           EM.add_timer(1) do
+            @logger.debug { "Reconnecting to #{@host}:#{@port}" }  if @logger
             reconnect @host, @port
           end
           @connected = false
           @reconnecting = true
           @deferred_status = nil
         else
+          # TODO: get rid of this exception
           raise 'Unable to connect to redis server'
         end
       end
