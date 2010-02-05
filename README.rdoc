@@ -23,13 +23,19 @@ Like any Deferrable eventmachine-based protocol implementation, using EM-Redis i
   require 'em-redis'
 
   EM.run do
-    redis = EM::Protocols::Redis.connect("localhost", 6379)
-    error_callback = lambda {|code| puts "Error code: #{code}" }
-    redis.on_error &error_callback
+    redis = EM::Protocols::Redis.connect
+    redis.errback do |code|
+      puts "Error code: #{code}"
+    end
     redis.set "a", "foo" do |response|
       redis.get "a" do |response|
         puts response
       end
+    end
+    # We get pipelining for free
+    redis.set("b", "bar")
+    redis.get("a") do |response|
+      puts response # will be foo
     end
   end
 
@@ -38,7 +44,7 @@ To run tests on a Redis server (currently compatible with 1.3)
   rake
 
 Because the EM::Protocol::Memcached code used Bacon for testing, test code is
-currently in the form of bacon specs.  I'll port them to RSpec at some point.
+currently in the form of bacon specs.
 
 == REQUIREMENTS:
 
