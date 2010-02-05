@@ -187,12 +187,12 @@ module EventMachine
       end
 
       def select(db, &blk)
-        @current_database = db
-        call_command(['select', db], &blk)
+        @db = db.to_i
+        call_command(['select', @db], &blk)
       end
 
       def auth(password, &blk)
-        @current_password = password
+        @password = password
         call_command(['auth', password], &blk)
       end
 
@@ -260,7 +260,7 @@ module EventMachine
           command << "#{bulk}\r\n" if bulk
         end
 
-        puts "*** sending: #{command}" if $debug
+        @logger.debug { "*** sending: #{command}" } if @logger
         @redis_callbacks << [REPLY_PROCESSOR[argv[0]], blk]
         send_data command
       end
@@ -281,21 +281,43 @@ module EventMachine
       # em hooks
       #########################
 
-      def self.connect(host = 'localhost', port = 6379 )
-        puts "*** connecting" if $debug
-        EM.connect host, port, self, host, port
+      def self.connect(*args)
+        case args.length
+        when 0
+          options = {}
+        when 1
+          arg = args.shift
+          case args
+          when Hash then options = arg
+          when String then options = {:host => arg}
+          else raise ArgumentError, 'first argument must be Hash or String'
+          end
+        when 2
+          options = {:host => args[1], :port => args[2]}
+        else
+          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)"
+        end
+        options[:host] ||= '127.0.0.1'
+        options[:port]   = (options[:port] || 6379).to_i
+        EM.connect options[:host], options[:port], self, options
       end
 
-      def initialize(host, port = 6379 )
-        puts "*** initializing" if $debug
-        @host, @port = host, port
+      def initialize(options = {})
+        @host           = options[:host]
+        @port           = options[:port]
+        @db             = (options[:db] || 0).to_i
+        @password       = options[:password]
+        @logger         = options[:logger]
       end
 
       def connection_completed
-        puts "*** connection_complete!" if $debug
+        @logger.debug { "Connected to #{@host}:#{@port}" } if @logger
+
         @redis_callbacks = []
         @values = []
         @multibulk_n = 0
+        call_command(["auth", @password]) if @password
+        call_command(["select", @db]) unless @db == 0
 
         @reconnecting = false
         @connected = true
@@ -319,7 +341,7 @@ module EventMachine
       end
 
       def process_cmd(line)
-        puts "*** processing #{line}" if $debug
+        @logger.debug { "*** processing #{line}" } if @logger
         # first character of buffer will always be the response type
         reply_type = line[0, 1]
         reply_args = line.slice(1..-3) # remove type character and \r\n
@@ -396,12 +418,10 @@ module EventMachine
       end
 
       def unbind
-        puts "*** unbinding" if $debug
-        if @connected or @reconnecting
+        @logger.debug { "Disconnected" }  if @logger
+        if @connected || @reconnecting
           EM.add_timer(1) do
             reconnect @host, @port
-            auth @current_password if @current_password
-            select @current_database if @current_database
           end
           @connected = false
           @reconnecting = true

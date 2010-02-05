@@ -5,14 +5,17 @@ EM.spec_backend = EventMachine::Spec::Bacon
 
 class TestConnection
   include EM::P::Redis
+
   def send_data data
     sent_data << data
   end
+
   def sent_data
     @sent_data ||= ''
   end
 
   def initialize
+    super
     connection_completed
   end
 end
