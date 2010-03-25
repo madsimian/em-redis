@@ -28,7 +28,6 @@ module EventMachine
         "sadd"      => true,
         "srem"      => true,
         "sismember" => true,
-        "rpoplpush" => true,
         "echo"      => true,
         "getset"    => true,
         "smove"     => true,
