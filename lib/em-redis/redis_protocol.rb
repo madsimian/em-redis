@@ -360,8 +360,8 @@ module EventMachine
 
         #e.g. -MISSING
         when MINUS
-          @redis_callbacks.shift # throw away the cb?
-          @error_callback.call(reply_args)
+          # Missing, dispatch empty response
+          dispatch_response(nil)
         # e.g. +OK
         when PLUS
           dispatch_response(reply_args)
