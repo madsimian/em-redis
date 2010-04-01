@@ -44,7 +44,7 @@ module EventMachine
         "multi_get" => true
       }
 
-      BOOLEAN_PROCESSOR = lambda{|r| r == 1 }
+      BOOLEAN_PROCESSOR = lambda{|r| %w(1 OK).include? r.to_s }
 
       REPLY_PROCESSOR = {
         "exists"    => BOOLEAN_PROCESSOR,
