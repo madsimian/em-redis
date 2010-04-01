@@ -551,9 +551,8 @@ EM.describe EM::Protocols::Redis do
 
     # attempt to update a key that's not a zset
     @r["i_am_not_a_zet"] = "value"
-    # should raise error
-    @r.on_error { true.should == true }
-    @r.zset_incr_by("i_am_not_a_zet", 23, "element") { false.should == true }
+    # shouldn't raise error anymore
+    @r.zset_incr_by("i_am_not_a_zet", 23, "element") { |r| r.should == nil }
 
     @r.delete("hackers")
     @r.delete("i_am_not_a_zet") { done }
