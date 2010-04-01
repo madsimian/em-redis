@@ -232,6 +232,32 @@ module EventMachine
       end
 
       def raw_call_command(argv, &blk)
+        argv[0] = argv[0].to_s unless argv[0].kind_of? String
+        send_command(argv)
+        @redis_callbacks << [REPLY_PROCESSOR[argv[0]], blk]
+      end
+
+      def call_commands(argvs, &blk)
+        callback { raw_call_commands(argvs, &blk) }
+      end
+
+      def raw_call_commands(argvs, &blk)
+        if argvs.empty?  # Shortcut
+          blk.call []
+          return
+        end
+
+        argvs.each do |argv|
+          argv[0] = argv[0].to_s unless argv[0].kind_of? String
+          send_command argv
+        end
+        # FIXME: argvs may contain heterogenous commands, storing all
+        # REPLY_PROCESSORs may turn out expensive and has been omitted
+        # for now.
+        @redis_callbacks << [nil, argvs.length, blk]
+      end
+
+      def send_command(argv)
         argv = argv.dup
 
         if MULTI_BULK_COMMANDS[argv.flatten[0].to_s]
@@ -261,7 +287,6 @@ module EventMachine
         end
 
         @logger.debug { "*** sending: #{command}" } if @logger
-        @redis_callbacks << [REPLY_PROCESSOR[argv[0]], blk]
         send_data command
       end
 
@@ -313,6 +338,7 @@ module EventMachine
           err.code = code
           raise err, "Redis server returned error code: #{code}"
         end
+        @values = []
 
         # These commands should be first
         auth_and_select_db
@@ -409,9 +435,22 @@ module EventMachine
           end
         end
 
-        processor, blk = @redis_callbacks.shift
-        value = processor.call(value) if processor
-        blk.call(value) if blk
+        callback = @redis_callbacks.shift
+        if callback.length == 2
+          processor, blk = callback
+          value = processor.call(value) if processor
+          blk.call(value) if blk
+        else
+          processor, pipeline_count, blk = callback
+          value = processor.call(value) if processor
+          @values << value
+          if pipeline_count > 1
+            @redis_callbacks.unshift [processor, pipeline_count - 1, blk]
+          else
+            blk.call(@values) if blk
+            @values = []
+          end
+        end
       end
 
       def start_multibulk(multibulk_count)

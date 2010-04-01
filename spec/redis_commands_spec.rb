@@ -643,4 +643,27 @@ EM.describe EM::Protocols::Redis do
   #   # lambda { @r.sync }.should.raise
   #   done
   # end
+
+  it "should work with 10 commands" do
+    @r.call_commands((1..10).map { |i|
+                       ['get', "foo"]
+                     }) do |rs|
+      rs.length.should == 10
+      rs.each { |r| r.should == "bar" }
+      done
+    end
+  end
+  it "should work with 1 command" do
+    @r.call_commands([['get', "foo"]]) do |rs|
+      rs.length.should == 1
+      rs[0].should == "bar"
+      done
+    end
+  end
+  it "should work with zero commands" do
+    @r.call_commands([]) do |rs|
+      rs.should == []
+      done
+    end
+  end
 end
