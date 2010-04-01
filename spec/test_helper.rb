@@ -1,4 +1,5 @@
 require File.expand_path(File.dirname(__FILE__) + "/../lib/em-redis")
+require 'bacon'
 require 'em-spec/bacon'
 
 EM.spec_backend = EventMachine::Spec::Bacon
