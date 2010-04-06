@@ -440,7 +440,7 @@ module EventMachine
           processor, blk = callback
           value = processor.call(value) if processor
           blk.call(value) if blk
-        else
+        elsif callback.length == 3
           processor, pipeline_count, blk = callback
           value = processor.call(value) if processor
           @values << value
