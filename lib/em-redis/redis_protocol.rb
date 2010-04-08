@@ -436,11 +436,11 @@ module EventMachine
         end
 
         callback = @redis_callbacks.shift
-        if callback.length == 2
+        if callback.kind_of?(Array) && callback.length == 2
           processor, blk = callback
           value = processor.call(value) if processor
           blk.call(value) if blk
-        elsif callback.length == 3
+        elsif callback.kind_of?(Array) && callback.length == 3
           processor, pipeline_count, blk = callback
           value = processor.call(value) if processor
           @values << value
