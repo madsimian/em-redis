@@ -233,6 +233,7 @@ module EventMachine
 
       def raw_call_command(argv, &blk)
         argv[0] = argv[0].to_s unless argv[0].kind_of? String
+        argv[0] = argv[0].downcase
         send_command(argv)
         @redis_callbacks << [REPLY_PROCESSOR[argv[0]], blk]
       end
