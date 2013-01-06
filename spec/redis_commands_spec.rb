@@ -272,7 +272,7 @@ EM.describe EM::Protocols::Redis do
     @r.lrange('list', 0, -1) { |r| r.should == ['goodbye']; done }
   end
 
-  it "should be able to pop values from a list and push them onto a temp list(RPOPLPUSH)" do
+  it "should be able to pop values from a list and push them onto a temp list (RPOPLPUSH)" do
     @r.rpush "list", 'one'
     @r.rpush "list", 'two'
     @r.rpush "list", 'three'
@@ -284,7 +284,7 @@ EM.describe EM::Protocols::Redis do
     @r.lrange('tmp', 0, -1) { |r| r.should == ['three'] }
     @r.rpoplpush('list', 'tmp') { |r| r.should == 'two' }
     @r.lrange('tmp', 0, -1) { |r| r.should == ['two', 'three'] }
-    @r.rpoplpush('list', 'tmp') { |r| r.should == 'one' }
+    @r.rpoplpush('list', 'tmp') { |r| r.should == 'one'; }
     @r.lrange('tmp', 0, -1) { |r| r.should == ['one', 'two', 'three']; done }
   end
   #
@@ -570,9 +570,10 @@ EM.describe EM::Protocols::Redis do
   it "should be able to flush the database (FLUSHDB)" do
     @r['key1'] = 'keyone'
     @r['key2'] = 'keytwo'
-    @r.keys('*') { |r| r.sort.should == ['foo', 'key1', 'key2'].sort } #foo from before
+    @r.keys('*') { |r| r.sort.should == ['foo', 'key1', 'key2'] } #foo from before
     @r.flushdb
-    @r.keys('*') { |r| r.should == []; done }
+    @r.keys('*') { |r| r.should == [] }
+    done
   end
   #
   it "should be able to SELECT database" do

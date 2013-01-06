@@ -18,37 +18,6 @@ module EventMachine
       ASTERISK = "*".freeze
       DELIM    = "\r\n".freeze
 
-      BULK_COMMANDS = {
-        "set"          => true,
-        "setnx"        => true,
-        "rpush"        => true,
-        "lpush"        => true,
-        "lset"         => true,
-        "lrem"         => true,
-        "sadd"         => true,
-        "srem"         => true,
-        "sismember"    => true,
-        "echo"         => true,
-        "getset"       => true,
-        "smove"        => true,
-        "zadd"         => true,
-        "zincrby"      => true,
-        "zrem"         => true,
-        "zscore"       => true,
-        "hget"         => true,
-        "hincrbyfloat" => true
-      }
-
-      MULTI_BULK_COMMANDS = {
-        "mset"      => true,
-        "msetnx"    => true,
-        "hgetall"   => true,
-        "hkeys"     => true,
-        "hmget"     => true,
-        "hvals"     => true,
-        "multi_get" => true
-      }
-
       BOOLEAN_PROCESSOR = lambda{|r| %w(1 OK).include? r.to_s}
 
       REPLY_PROCESSOR = {
@@ -70,7 +39,6 @@ module EventMachine
         "hdel"      => BOOLEAN_PROCESSOR,
         "hsetnx"    => BOOLEAN_PROCESSOR,
         "hgetall"   => lambda{|r| Hash[*r]},
-        "keys"      => lambda{|r| r.split(" ")},
         "info"      => lambda{|r|
           info = {}
           r.each_line {|kv|
@@ -123,7 +91,6 @@ module EventMachine
         "zset_score"           => "zscore",
         "zset_incr_by"         => "zincrby",
         "zset_increment_by"    => "zincrby",
-        # these aliases aren't in redis gem
         "background_save"      => 'bgsave',
         "async_save"           => 'bgsave',
         "members"              => 'smembers',
@@ -171,20 +138,22 @@ module EventMachine
       end
 
       def set(key, value, expiry=nil)
-        call_command([:set, key, value]) do |s|
+        call_command(["set", key, value]) do |s|
           yield s if block_given?
         end
         expire(key, expiry) if expiry
       end
 
       def sort(key, options={}, &blk)
-        cmd = ["SORT"]
-        cmd << key
-        cmd << "BY #{options[:by]}" if options[:by]
-        cmd << "GET #{[options[:get]].flatten * ' GET '}" if options[:get]
-        cmd << "#{options[:order]}" if options[:order]
-        cmd << "LIMIT #{options[:limit].join(' ')}" if options[:limit]
-        call_command(cmd, &blk)
+        cmd = ["sort", key]
+        cmd << ["by", options[:by]] if options[:by]
+        Array(options[:get]).each do |v|
+          cmd << ["get", v]
+        end
+        cmd << options[:order].split(" ") if options[:order]
+        cmd << ["limit", options[:limit]] if options[:limit]
+        cmd << ["store", options[:store]] if options[:store]
+        call_command(cmd.flatten, &blk)
       end
 
       def incr(key, increment = nil, &blk)
@@ -271,31 +240,21 @@ module EventMachine
       def send_command(argv)
         argv = argv.dup
 
-        if MULTI_BULK_COMMANDS[argv.flatten[0].to_s]
-          # TODO improve this code
-          argvp   = argv.flatten
-          values  = argvp.pop.to_a.flatten
-          argvp   = values.unshift(argvp[0])
-          command = ["*#{argvp.size}"]
-          argvp.each do |v|
-            v = v.to_s
-            command << "$#{get_size(v)}"
-            command << v
-          end
-          command = command.map {|cmd| "#{cmd}\r\n"}.join
-        else
-          command = ""
-          bulk = nil
-          argv[0] = argv[0].to_s.downcase
-          argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
-          raise "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
-          if BULK_COMMANDS[argv[0]] and argv.length > 1
-            bulk = argv[-1].to_s
-            argv[-1] = get_size(bulk)
-          end
-          command << "#{argv.join(' ')}\r\n"
-          command << "#{bulk}\r\n" if bulk
+        raise "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
+        argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
+
+        if argv[-1].is_a?(Hash)
+          argv[-1] = argv[-1].to_a.flatten
+          argv.flatten!
         end
+
+        command = ["*#{argv.size}"]
+        argv.each do |v|
+          v = v.to_s
+          command << "$#{get_size(v)}"
+          command << v
+        end
+        command = command.map {|cmd| cmd + DELIM}.join
 
         @logger.debug { "*** sending: #{command}" } if @logger
         send_data command
@@ -421,7 +380,7 @@ module EventMachine
         #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n
         when ASTERISK
           multibulk_count = Integer(reply_args)
-          if multibulk_count == -1
+          if multibulk_count == -1 || multibulk_count == 0
             dispatch_response([])
           else
             start_multibulk(multibulk_count)
