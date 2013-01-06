@@ -19,32 +19,37 @@ module EventMachine
       DELIM    = "\r\n".freeze
 
       BULK_COMMANDS = {
-        "set"       => true,
-        "setnx"     => true,
-        "rpush"     => true,
-        "lpush"     => true,
-        "lset"      => true,
-        "lrem"      => true,
-        "sadd"      => true,
-        "srem"      => true,
-        "sismember" => true,
-        "echo"      => true,
-        "getset"    => true,
-        "smove"     => true,
-        "zadd"      => true,
-        "zincrby"   => true,
-        "zrem"      => true,
-        "zscore"    => true
+        "set"          => true,
+        "setnx"        => true,
+        "rpush"        => true,
+        "lpush"        => true,
+        "lset"         => true,
+        "lrem"         => true,
+        "sadd"         => true,
+        "srem"         => true,
+        "sismember"    => true,
+        "echo"         => true,
+        "getset"       => true,
+        "smove"        => true,
+        "zadd"         => true,
+        "zincrby"      => true,
+        "zrem"         => true,
+        "zscore"       => true,
+        "hget"         => true,
+        "hincrbyfloat" => true
       }
 
       MULTI_BULK_COMMANDS = {
         "mset"      => true,
         "msetnx"    => true,
-        # these aliases aren't in redis gem
+        "hgetall"   => true,
+        "hkeys"     => true,
+        "hmget"     => true,
+        "hvals"     => true,
         "multi_get" => true
       }
 
-      BOOLEAN_PROCESSOR = lambda{|r| %w(1 OK).include? r.to_s }
+      BOOLEAN_PROCESSOR = lambda{|r| %w(1 OK).include? r.to_s}
 
       REPLY_PROCESSOR = {
         "exists"    => BOOLEAN_PROCESSOR,
@@ -59,7 +64,12 @@ module EventMachine
         "del"       => BOOLEAN_PROCESSOR,
         "renamenx"  => BOOLEAN_PROCESSOR,
         "expire"    => BOOLEAN_PROCESSOR,
-        "select"    => BOOLEAN_PROCESSOR, # not in redis gem
+        "select"    => BOOLEAN_PROCESSOR,
+        "hexists"   => BOOLEAN_PROCESSOR,
+        "hset"      => BOOLEAN_PROCESSOR,
+        "hdel"      => BOOLEAN_PROCESSOR,
+        "hsetnx"    => BOOLEAN_PROCESSOR,
+        "hgetall"   => lambda{|r| Hash[*r]},
         "keys"      => lambda{|r| r.split(" ")},
         "info"      => lambda{|r|
           info = {}
@@ -408,7 +418,7 @@ module EventMachine
         #e.g. :8
         when COLON
           dispatch_response(Integer(reply_args))
-        #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n 
+        #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n
         when ASTERISK
           multibulk_count = Integer(reply_args)
           if multibulk_count == -1
