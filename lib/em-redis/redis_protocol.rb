@@ -202,6 +202,14 @@ module EventMachine
       end
       alias_method :on_error, :errback
 
+      def before_reconnect(&blk)
+        @reconnect_callbacks[:before] = blk
+      end
+
+      def after_reconnect(&blk)
+        @reconnect_callbacks[:after] = blk
+      end
+
       def method_missing(*argv, &blk)
         call_command(argv, &blk)
       end
@@ -302,12 +310,17 @@ module EventMachine
         @port           = options[:port]
         @db             = (options[:db] || 0).to_i
         @password       = options[:password]
+        @auto_reconnect = options[:auto_reconnect] || false
         @logger         = options[:logger]
         @error_callback = lambda do |code|
           err = RedisError.new
           err.code = code
           raise err, "Redis server returned error code: #{code}"
         end
+        @reconnect_callbacks = {
+          :before => lambda{},
+          :after  => lambda{}
+        }
         @values = []
 
         # These commands should be first
@@ -322,6 +335,8 @@ module EventMachine
 
       def connection_completed
         @logger.debug { "Connected to #{@host}:#{@port}" } if @logger
+
+        @reconnect_callbacks[:after].call if @reconnecting
 
         @redis_callbacks = []
         @multibulk_n     = false
@@ -435,9 +450,10 @@ module EventMachine
 
       def unbind
         @logger.debug { "Disconnected" }  if @logger
-        if @connected || @reconnecting
+        if (@connected || @reconnecting) && @auto_reconnect
+          @reconnect_callbacks[:before].call if @connected
           EM.add_timer(1) do
-            @logger.debug { "Reconnecting to #{@host}:#{@port}" }  if @logger
+            @logger.debug { "Reconnecting to #{@host}:#{@port}" } if @logger
             reconnect @host, @port
             auth_and_select_db
           end
@@ -445,8 +461,7 @@ module EventMachine
           @reconnecting = true
           @deferred_status = nil
         else
-          # TODO: get rid of this exception
-          raise 'Unable to connect to redis server'
+          @error_callback.call('Unable to connect to redis server')
         end
       end
 
