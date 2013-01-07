@@ -423,6 +423,99 @@ EM.describe EM::Protocols::Redis, "connected to a db containing three linked lis
   end
 end
 
+EM.describe EM::Protocols::Redis, "connected to a db containing some hash-valued keys" do
+
+  before do
+    @c = EM::Protocols::Redis.connect :db => 14
+    @c.flushdb
+    @c.hset "a", "one", "foo"
+    @c.hset "a", "two", true
+    @c.hset "a", "three", 1
+  end
+
+  should "be able to fetch a field in the hash stored at key" do
+    @c.hget("a", "one") { |r| r.should == "foo" }
+    @c.hget("a", "two") { |r| r.should == "true" }
+    @c.hget("a", "three") { |r| r.should == "1"; done }
+  end
+
+  should "be able to fetch a nonexistent field in the hash stored at key" do
+    @c.hget "a", "four" do |r|
+      r.should == nil
+      done
+    end
+  end
+
+  should "be able to check if a field exists in the hash stored at key" do
+    @c.hexists("a", "one") { |r| r.should == true }
+    @c.hexists("a", "four") { |r| r.should == false; done }
+  end
+
+  should "be able to delete a field in the hash stored at key" do
+    @c.hdel("a", "one") do |r|
+      r.should == true
+      @c.hget "a", "one" do |r|
+        r.should == nil
+        done
+      end
+    end
+  end
+
+  should "be able to fetch an entire hash stored at key" do
+    @c.hgetall "a" do |r|
+      r.should == {"one" => "foo", "two" => "true", "three" => "1"}
+      done
+    end
+  end
+
+  should "be able to increment a field in the hash stored at key" do
+    @c.hincrby "a", "three", 1 do |r|
+      r.should == 2
+      done
+    end
+  end
+
+  should "be able to fetch field names in the hash stored at key" do
+    @c.hkeys "a" do |r|
+      r.should == ["one", "two", "three"]
+      done
+    end
+  end
+
+  should "be able to fetch field values in the hash stored at key" do
+    @c.hvals "a" do |r|
+      r.should == ["foo", "true", "1"]
+      done
+    end
+  end
+
+  should "be able to fetch multiple fields in the hash stored at key" do
+    @c.hmget "a", "one", "two", "three", "four" do |r|
+      r.should == ["foo", "true", "1", nil]
+      done
+    end
+  end
+
+  should "be able to set multiple fields in the hash stored at key" do
+    @c.hmset "a", "four", "foo", "five", "bar" do |r|
+      r.should == "OK"
+      @c.hget("a", "four") { |r| r.should == "foo" }
+      @c.hget("a", "five") { |r| r.should == "bar"; done }
+    end
+  end
+
+  should "be able to set a field if not already set in the hash stored at key" do
+    @c.hsetnx "a", "four", "foo" do |r|
+      r.should == true
+      @c.hsetnx "a", "four", "bar" do |r|
+        r.should == false
+        done
+      end
+    end
+  end
+
+end
+
 EM.describe EM::Protocols::Redis, "when reconnecting" do
   before do
     @c = EM::Protocols::Redis.connect :db => 14
