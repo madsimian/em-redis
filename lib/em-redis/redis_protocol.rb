@@ -202,6 +202,10 @@ module EventMachine
       end
       alias_method :on_error, :errback
 
+      def error(code)
+        @error_callback.call(code)
+      end
+
       def before_reconnect(&blk)
         @reconnect_callbacks[:before] = blk
       end
@@ -409,7 +413,7 @@ module EventMachine
 
       def dispatch_error(code)
         @redis_callbacks.shift
-        @error_callback.call(code)
+        error(code)
       end
 
       def dispatch_response(value)
@@ -449,7 +453,7 @@ module EventMachine
       end
 
       def unbind
-        @logger.debug { "Disconnected" }  if @logger
+        @logger.debug { "Disconnected" } if @logger
         if (@connected || @reconnecting) && @auto_reconnect
           @reconnect_callbacks[:before].call if @connected
           EM.add_timer(1) do
@@ -457,12 +461,14 @@ module EventMachine
             reconnect @host, @port
             auth_and_select_db
           end
-          @connected = false
           @reconnecting = true
-          @deferred_status = nil
+        elsif @connected
+          error('connection closed')
         else
-          @error_callback.call('Unable to connect to redis server')
+          error('unable to connect to redis server')
         end
+        @connected = false
+        @deferred_status = nil
       end
 
       private
