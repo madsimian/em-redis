@@ -567,8 +567,7 @@ EM.describe EM::Protocols::Redis do
     @r['key2'] = 'keytwo'
     @r.keys('*') { |r| r.sort.should == ['foo', 'key1', 'key2'] } #foo from before
     @r.flushdb
-    @r.keys('*') { |r| r.should == [] }
-    done
+    @r.keys('*') { |r| r.should == []; done }
   end
   #
   it "should be able to SELECT database" do
