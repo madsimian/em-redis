@@ -284,7 +284,7 @@ EM.describe EM::Protocols::Redis do
     @r.lrange('tmp', 0, -1) { |r| r.should == ['three'] }
     @r.rpoplpush('list', 'tmp') { |r| r.should == 'two' }
     @r.lrange('tmp', 0, -1) { |r| r.should == ['two', 'three'] }
-    @r.rpoplpush('list', 'tmp') { |r| r.should == 'one'; }
+    @r.rpoplpush('list', 'tmp') { |r| r.should == 'one' }
     @r.lrange('tmp', 0, -1) { |r| r.should == ['one', 'two', 'three']; done }
   end
   #
@@ -548,11 +548,6 @@ EM.describe EM::Protocols::Redis do
     # update the score
     @r.zset_increment_by "hackers", 100, "Alan Turing" # yeah, we are making Turing a bit younger
     @r.zset_score("hackers", "Alan Turing") { |r| r.should == "2012" }
-
-    # attempt to update a key that's not a zset
-    @r["i_am_not_a_zet"] = "value"
-    # shouldn't raise error anymore
-    @r.zset_incr_by("i_am_not_a_zet", 23, "element") { |r| r.should == nil }
 
     @r.delete("hackers")
     @r.delete("i_am_not_a_zet") { done }

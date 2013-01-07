@@ -244,7 +244,7 @@ module EventMachine
         argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
 
         if argv[-1].is_a?(Hash)
-          argv[-1] = argv[-1].to_a.flatten
+          argv[-1] = argv[-1].to_a
           argv.flatten!
         end
 
@@ -354,10 +354,10 @@ module EventMachine
         reply_args = line.slice(1..-3) # remove type character and \r\n
         case reply_type
 
-        #e.g. -MISSING
+        #e.g. -ERR
         when MINUS
-          # Missing, dispatch empty response
-          dispatch_response(nil)
+          # Server ERROR
+          dispatch_error(reply_args)
         # e.g. +OK
         when PLUS
           dispatch_response(reply_args)
@@ -390,6 +390,11 @@ module EventMachine
           # TODO: get rid of this exception
           raise ProtocolError, "reply type not recognized: #{line.strip}"
         end
+      end
+
+      def dispatch_error(code)
+        @redis_callbacks.shift
+        @error_callback.call(code)
       end
 
       def dispatch_response(value)
