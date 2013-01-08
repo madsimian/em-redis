@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'eventmachine'
+require 'uri'
 
 module EventMachine
   module Protocols
@@ -202,8 +203,9 @@ module EventMachine
       end
       alias_method :on_error, :errback
 
-      def error(code)
-        @error_callback.call(code)
+      def error(klass, msg)
+        err = klass.new(msg)
+        @error_callback.call(err)
       end
 
       def before_reconnect(&blk)
@@ -252,7 +254,7 @@ module EventMachine
       def send_command(argv)
         argv = argv.dup
 
-        raise "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
+        error DisabledCommand, "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
         argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
 
         if argv[-1].is_a?(Hash)
@@ -276,37 +278,50 @@ module EventMachine
       # errors
       #########################
 
+      class DisabledCommand < StandardError; end
       class ParserError < StandardError; end
       class ProtocolError < StandardError; end
-
-      class RedisError < StandardError
-        attr_accessor :code
-      end
-
+      class RedisError < StandardError; end
+      class ConnectionError < StandardError; end
 
       ##
       # em hooks
       #########################
 
-      def self.connect(*args)
-        case args.length
-        when 0
-          options = {}
-        when 1
-          arg = args.shift
-          case arg
-          when Hash then options = arg
-          when String then options = {:host => arg}
-          else raise ArgumentError, 'first argument must be Hash or String'
+      class << self
+        def parse_url(url)
+          begin
+            uri = URI.parse(url)
+            {
+              :host => uri.host,
+              :port => uri.port,
+              :password => uri.password
+            }
+          rescue
+            error ArgumentError, 'invalid redis url'
           end
-        when 2
-          options = {:host => args[1], :port => args[2]}
-        else
-          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)"
         end
-        options[:host] ||= '127.0.0.1'
-        options[:port]   = (options[:port] || 6379).to_i
-        EM.connect options[:host], options[:port], self, options
+
+        def connect(*args)
+          case args.length
+          when 0
+            options = {}
+          when 1
+            arg = args.shift
+            case arg
+            when Hash then options = arg
+            when String then options = parse_url(arg)
+            else error ArgumentError, 'first argument must be Hash or String'
+            end
+          when 2
+            options = {:host => args[1], :port => args[2]}
+          else
+            error ArgumentError, "wrong number of arguments (#{args.length} for 1)"
+          end
+          options[:host] ||= '127.0.0.1'
+          options[:port]   = (options[:port] || 6379).to_i
+          EM.connect options[:host], options[:port], self, options
+        end
       end
 
       def initialize(options = {})
@@ -314,12 +329,10 @@ module EventMachine
         @port           = options[:port]
         @db             = (options[:db] || 0).to_i
         @password       = options[:password]
-        @auto_reconnect = options[:auto_reconnect] || false
+        @auto_reconnect = options[:auto_reconnect] || true
         @logger         = options[:logger]
-        @error_callback = lambda do |code|
-          err = RedisError.new
-          err.code = code
-          raise err, "Redis server returned error code: #{code}"
+        @error_callback = lambda do |err|
+          raise err
         end
         @reconnect_callbacks = {
           :before => lambda{},
@@ -372,10 +385,9 @@ module EventMachine
         reply_type = line[0, 1]
         reply_args = line.slice(1..-3) # remove type character and \r\n
         case reply_type
-
-        #e.g. -ERR
+        # e.g. -ERR
         when MINUS
-          # Server ERROR
+          # server ERROR
           dispatch_error(reply_args)
         # e.g. +OK
         when PLUS
@@ -390,13 +402,12 @@ module EventMachine
             dispatch_response(@buffer.slice!(0, data_len))
             @buffer.slice!(0,2) # tossing \r\n
           else # buffer isn't full or nil
-            # TODO: don't control execution with exceptions
             raise ParserError
           end
-        #e.g. :8
+        # e.g. :8
         when COLON
           dispatch_response(Integer(reply_args))
-        #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n
+        # e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n
         when ASTERISK
           multibulk_count = Integer(reply_args)
           if multibulk_count == -1 || multibulk_count == 0
@@ -404,16 +415,15 @@ module EventMachine
           else
             start_multibulk(multibulk_count)
           end
-        # Whu?
+        # WAT?
         else
-          # TODO: get rid of this exception
-          raise ProtocolError, "reply type not recognized: #{line.strip}"
+          error ProtocolError, "reply type not recognized: #{line.strip}"
         end
       end
 
-      def dispatch_error(code)
+      def dispatch_error(msg)
         @redis_callbacks.shift
-        error(code)
+        error RedisError, "Redis server returned error: #{msg}"
       end
 
       def dispatch_response(value)
@@ -452,20 +462,31 @@ module EventMachine
         @multibulk_values = []
       end
 
+      def connected?
+        @connected || false
+      end
+
+      def close
+        @closing = true
+        close_after_writing
+      end
+
       def unbind
         @logger.debug { "Disconnected" } if @logger
-        if (@connected || @reconnecting) && @auto_reconnect
+        if @closing
+          @reconnecting = false
+        elsif (@connected || @reconnecting) && @auto_reconnect
           @reconnect_callbacks[:before].call if @connected
+          @reconnecting = true
           EM.add_timer(1) do
             @logger.debug { "Reconnecting to #{@host}:#{@port}" } if @logger
             reconnect @host, @port
             auth_and_select_db
           end
-          @reconnecting = true
         elsif @connected
-          error('connection closed')
+          error ConnectionError, 'connection closed'
         else
-          error('unable to connect to redis server')
+          error ConnectionError, 'unable to connect to redis server'
         end
         @connected = false
         @deferred_status = nil
