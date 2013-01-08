@@ -24,8 +24,9 @@ Like any Deferrable eventmachine-based protocol implementation, using EM-Redis i
 
   EM.run do
     redis = EM::Protocols::Redis.connect
-    redis.errback do |code|
-      puts "Error code: #{code}"
+    redis.errback do |err|
+      puts err.inspect
+      puts "Error code: #{err.code}" if err.code
     end
     redis.set "a", "foo" do |response|
       redis.get "a" do |response|

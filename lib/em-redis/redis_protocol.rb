@@ -205,6 +205,7 @@ module EventMachine
 
       def error(klass, msg)
         err = klass.new(msg)
+        err.code = msg if err.respond_to?(:code)
         @error_callback.call(err)
       end
 
@@ -281,8 +282,16 @@ module EventMachine
       class DisabledCommand < StandardError; end
       class ParserError < StandardError; end
       class ProtocolError < StandardError; end
-      class RedisError < StandardError; end
       class ConnectionError < StandardError; end
+
+      class RedisError < StandardError
+        attr_accessor :code
+
+        def initialize(*args)
+          args[0] = "Redis server returned error code: #{args[0]}"
+          super
+        end
+      end
 
       ##
       # em hooks
@@ -421,9 +430,9 @@ module EventMachine
         end
       end
 
-      def dispatch_error(msg)
+      def dispatch_error(code)
         @redis_callbacks.shift
-        error RedisError, "Redis server returned error: #{msg}"
+        error RedisError, code
       end
 
       def dispatch_response(value)

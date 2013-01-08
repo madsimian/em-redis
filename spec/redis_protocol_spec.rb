@@ -87,7 +87,7 @@ EM.describe EM::Protocols::Redis do
   should "trigger a given error callback (specified with on_error) for inline error response instead of raising an error" do
     lambda do
       @c.call_command(["blarg"])
-      @c.on_error {|code| code.should == "ERR"; done }
+      @c.on_error {|err| err.code.should == "ERR"; done }
       @c.receive_data "-ERR\r\n"
     end.should.not.raise(EM::P::Redis::RedisError)
   end
@@ -95,7 +95,7 @@ EM.describe EM::Protocols::Redis do
   should "trigger a given error callback for inline error response instead of raising an error" do
     lambda do
       @c.call_command(["blarg"])
-      @c.errback { |code| code.should == "ERR"; done }
+      @c.errback { |err| err.code.should == "ERR"; done }
       @c.receive_data "-ERR\r\n"
     end.should.not.raise(EM::P::Redis::RedisError)
   end
