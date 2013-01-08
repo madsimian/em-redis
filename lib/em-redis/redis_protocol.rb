@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'eventmachine'
+require 'uri'
 
 module EventMachine
   module Protocols
@@ -18,33 +19,7 @@ module EventMachine
       ASTERISK = "*".freeze
       DELIM    = "\r\n".freeze
 
-      BULK_COMMANDS = {
-        "set"       => true,
-        "setnx"     => true,
-        "rpush"     => true,
-        "lpush"     => true,
-        "lset"      => true,
-        "lrem"      => true,
-        "sadd"      => true,
-        "srem"      => true,
-        "sismember" => true,
-        "echo"      => true,
-        "getset"    => true,
-        "smove"     => true,
-        "zadd"      => true,
-        "zincrby"   => true,
-        "zrem"      => true,
-        "zscore"    => true
-      }
-
-      MULTI_BULK_COMMANDS = {
-        "mset"      => true,
-        "msetnx"    => true,
-        # these aliases aren't in redis gem
-        "multi_get" => true
-      }
-
-      BOOLEAN_PROCESSOR = lambda{|r| %w(1 OK).include? r.to_s }
+      BOOLEAN_PROCESSOR = lambda{|r| %w(1 OK).include? r.to_s}
 
       REPLY_PROCESSOR = {
         "exists"    => BOOLEAN_PROCESSOR,
@@ -59,8 +34,12 @@ module EventMachine
         "del"       => BOOLEAN_PROCESSOR,
         "renamenx"  => BOOLEAN_PROCESSOR,
         "expire"    => BOOLEAN_PROCESSOR,
-        "select"    => BOOLEAN_PROCESSOR, # not in redis gem
-        "keys"      => lambda{|r| r.split(" ")},
+        "select"    => BOOLEAN_PROCESSOR,
+        "hexists"   => BOOLEAN_PROCESSOR,
+        "hset"      => BOOLEAN_PROCESSOR,
+        "hdel"      => BOOLEAN_PROCESSOR,
+        "hsetnx"    => BOOLEAN_PROCESSOR,
+        "hgetall"   => lambda{|r| Hash[*r]},
         "info"      => lambda{|r|
           info = {}
           r.each_line {|kv|
@@ -113,7 +92,6 @@ module EventMachine
         "zset_score"           => "zscore",
         "zset_incr_by"         => "zincrby",
         "zset_increment_by"    => "zincrby",
-        # these aliases aren't in redis gem
         "background_save"      => 'bgsave',
         "async_save"           => 'bgsave',
         "members"              => 'smembers',
@@ -161,20 +139,22 @@ module EventMachine
       end
 
       def set(key, value, expiry=nil)
-        call_command([:set, key, value]) do |s|
+        call_command(["set", key, value]) do |s|
           yield s if block_given?
         end
         expire(key, expiry) if expiry
       end
 
       def sort(key, options={}, &blk)
-        cmd = ["SORT"]
-        cmd << key
-        cmd << "BY #{options[:by]}" if options[:by]
-        cmd << "GET #{[options[:get]].flatten * ' GET '}" if options[:get]
-        cmd << "#{options[:order]}" if options[:order]
-        cmd << "LIMIT #{options[:limit].join(' ')}" if options[:limit]
-        call_command(cmd, &blk)
+        cmd = ["sort", key]
+        cmd << ["by", options[:by]] if options[:by]
+        Array(options[:get]).each do |v|
+          cmd << ["get", v]
+        end
+        cmd << options[:order].split(" ") if options[:order]
+        cmd << ["limit", options[:limit]] if options[:limit]
+        cmd << ["store", options[:store]] if options[:store]
+        call_command(cmd.flatten, &blk)
       end
 
       def incr(key, increment = nil, &blk)
@@ -223,6 +203,20 @@ module EventMachine
       end
       alias_method :on_error, :errback
 
+      def error(klass, msg)
+        err = klass.new(msg)
+        err.code = msg if err.respond_to?(:code)
+        @error_callback.call(err)
+      end
+
+      def before_reconnect(&blk)
+        @reconnect_callbacks[:before] = blk
+      end
+
+      def after_reconnect(&blk)
+        @reconnect_callbacks[:after] = blk
+      end
+
       def method_missing(*argv, &blk)
         call_command(argv, &blk)
       end
@@ -261,31 +255,21 @@ module EventMachine
       def send_command(argv)
         argv = argv.dup
 
-        if MULTI_BULK_COMMANDS[argv.flatten[0].to_s]
-          # TODO improve this code
-          argvp   = argv.flatten
-          values  = argvp.pop.to_a.flatten
-          argvp   = values.unshift(argvp[0])
-          command = ["*#{argvp.size}"]
-          argvp.each do |v|
-            v = v.to_s
-            command << "$#{get_size(v)}"
-            command << v
-          end
-          command = command.map {|cmd| "#{cmd}\r\n"}.join
-        else
-          command = ""
-          bulk = nil
-          argv[0] = argv[0].to_s.downcase
-          argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
-          raise "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
-          if BULK_COMMANDS[argv[0]] and argv.length > 1
-            bulk = argv[-1].to_s
-            argv[-1] = get_size(bulk)
-          end
-          command << "#{argv.join(' ')}\r\n"
-          command << "#{bulk}\r\n" if bulk
+        error DisabledCommand, "#{argv[0]} command is disabled" if DISABLED_COMMANDS[argv[0]]
+        argv[0] = ALIASES[argv[0]] if ALIASES[argv[0]]
+
+        if argv[-1].is_a?(Hash)
+          argv[-1] = argv[-1].to_a
+          argv.flatten!
         end
+
+        command = ["*#{argv.size}"]
+        argv.each do |v|
+          v = v.to_s
+          command << "$#{get_size(v)}"
+          command << v
+        end
+        command = command.map {|cmd| cmd + DELIM}.join
 
         @logger.debug { "*** sending: #{command}" } if @logger
         send_data command
@@ -295,37 +279,58 @@ module EventMachine
       # errors
       #########################
 
+      class DisabledCommand < StandardError; end
       class ParserError < StandardError; end
       class ProtocolError < StandardError; end
+      class ConnectionError < StandardError; end
 
       class RedisError < StandardError
         attr_accessor :code
-      end
 
+        def initialize(*args)
+          args[0] = "Redis server returned error code: #{args[0]}"
+          super
+        end
+      end
 
       ##
       # em hooks
       #########################
 
-      def self.connect(*args)
-        case args.length
-        when 0
-          options = {}
-        when 1
-          arg = args.shift
-          case arg
-          when Hash then options = arg
-          when String then options = {:host => arg}
-          else raise ArgumentError, 'first argument must be Hash or String'
+      class << self
+        def parse_url(url)
+          begin
+            uri = URI.parse(url)
+            {
+              :host => uri.host,
+              :port => uri.port,
+              :password => uri.password
+            }
+          rescue
+            error ArgumentError, 'invalid redis url'
           end
-        when 2
-          options = {:host => args[1], :port => args[2]}
-        else
-          raise ArgumentError, "wrong number of arguments (#{args.length} for 1)"
         end
-        options[:host] ||= '127.0.0.1'
-        options[:port]   = (options[:port] || 6379).to_i
-        EM.connect options[:host], options[:port], self, options
+
+        def connect(*args)
+          case args.length
+          when 0
+            options = {}
+          when 1
+            arg = args.shift
+            case arg
+            when Hash then options = arg
+            when String then options = parse_url(arg)
+            else error ArgumentError, 'first argument must be Hash or String'
+            end
+          when 2
+            options = {:host => args[1], :port => args[2]}
+          else
+            error ArgumentError, "wrong number of arguments (#{args.length} for 1)"
+          end
+          options[:host] ||= '127.0.0.1'
+          options[:port]   = (options[:port] || 6379).to_i
+          EM.connect options[:host], options[:port], self, options
+        end
       end
 
       def initialize(options = {})
@@ -333,12 +338,15 @@ module EventMachine
         @port           = options[:port]
         @db             = (options[:db] || 0).to_i
         @password       = options[:password]
+        @auto_reconnect = options[:auto_reconnect] || true
         @logger         = options[:logger]
-        @error_callback = lambda do |code|
-          err = RedisError.new
-          err.code = code
-          raise err, "Redis server returned error code: #{code}"
+        @error_callback = lambda do |err|
+          raise err
         end
+        @reconnect_callbacks = {
+          :before => lambda{},
+          :after  => lambda{}
+        }
         @values = []
 
         # These commands should be first
@@ -353,6 +361,8 @@ module EventMachine
 
       def connection_completed
         @logger.debug { "Connected to #{@host}:#{@port}" } if @logger
+
+        @reconnect_callbacks[:after].call if @reconnecting
 
         @redis_callbacks = []
         @multibulk_n     = false
@@ -384,11 +394,10 @@ module EventMachine
         reply_type = line[0, 1]
         reply_args = line.slice(1..-3) # remove type character and \r\n
         case reply_type
-
-        #e.g. -MISSING
+        # e.g. -ERR
         when MINUS
-          # Missing, dispatch empty response
-          dispatch_response(nil)
+          # server ERROR
+          dispatch_error(reply_args)
         # e.g. +OK
         when PLUS
           dispatch_response(reply_args)
@@ -402,25 +411,28 @@ module EventMachine
             dispatch_response(@buffer.slice!(0, data_len))
             @buffer.slice!(0,2) # tossing \r\n
           else # buffer isn't full or nil
-            # TODO: don't control execution with exceptions
             raise ParserError
           end
-        #e.g. :8
+        # e.g. :8
         when COLON
           dispatch_response(Integer(reply_args))
-        #e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n 
+        # e.g. *2\r\n$1\r\na\r\n$1\r\nb\r\n
         when ASTERISK
           multibulk_count = Integer(reply_args)
-          if multibulk_count == -1
+          if multibulk_count == -1 || multibulk_count == 0
             dispatch_response([])
           else
             start_multibulk(multibulk_count)
           end
-        # Whu?
+        # WAT?
         else
-          # TODO: get rid of this exception
-          raise ProtocolError, "reply type not recognized: #{line.strip}"
+          error ProtocolError, "reply type not recognized: #{line.strip}"
         end
+      end
+
+      def dispatch_error(code)
+        @redis_callbacks.shift
+        error RedisError, code
       end
 
       def dispatch_response(value)
@@ -459,21 +471,34 @@ module EventMachine
         @multibulk_values = []
       end
 
+      def connected?
+        @connected || false
+      end
+
+      def close
+        @closing = true
+        close_after_writing
+      end
+
       def unbind
-        @logger.debug { "Disconnected" }  if @logger
-        if @connected || @reconnecting
+        @logger.debug { "Disconnected" } if @logger
+        if @closing
+          @reconnecting = false
+        elsif (@connected || @reconnecting) && @auto_reconnect
+          @reconnect_callbacks[:before].call if @connected
+          @reconnecting = true
           EM.add_timer(1) do
-            @logger.debug { "Reconnecting to #{@host}:#{@port}" }  if @logger
+            @logger.debug { "Reconnecting to #{@host}:#{@port}" } if @logger
             reconnect @host, @port
             auth_and_select_db
           end
-          @connected = false
-          @reconnecting = true
-          @deferred_status = nil
+        elsif @connected
+          error ConnectionError, 'connection closed'
         else
-          # TODO: get rid of this exception
-          raise 'Unable to connect to redis server'
+          error ConnectionError, 'unable to connect to redis server'
         end
+        @connected = false
+        @deferred_status = nil
       end
 
       private
