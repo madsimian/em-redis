@@ -560,7 +560,7 @@ EM.describe EM::Protocols::Redis do
   #
   it "should provide info (INFO)" do
     @r.info do |r|
-      [:last_save_time, :redis_version, :total_connections_received, :connected_clients, :total_commands_processed, :connected_slaves, :uptime_in_seconds, :used_memory, :uptime_in_days, :changes_since_last_save].each do |x|
+      [:rdb_last_save_time, :redis_version, :total_connections_received, :connected_clients, :total_commands_processed, :connected_slaves, :uptime_in_seconds, :used_memory, :uptime_in_days, :rdb_changes_since_last_save].each do |x|
         r.keys.include?(x).should == true
       end
       done
