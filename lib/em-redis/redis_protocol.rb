@@ -84,7 +84,6 @@ module EventMachine
         "pop_tail"             => "rpop",
         "pop_head"             => "lpop",
         "list_set"             => "lset",
-        "list_range"           => "lrange",
         "list_trim"            => "ltrim",
         "list_index"           => "lindex",
         "list_rm"              => "lrem",
@@ -116,7 +115,6 @@ module EventMachine
         # these aliases aren't in redis gem
         "background_save"      => 'bgsave',
         "async_save"           => 'bgsave',
-        "members"              => 'smembers',
         "decrement_by"         => "decrby",
         "decrement"            => "decr",
         "increment_by"         => "incrby",
